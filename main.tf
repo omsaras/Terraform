@@ -11,6 +11,7 @@ terraform {
 provider "aws" {
   region = "ap-southeast-2"
   # if mac/linux, profile is located at ~/.aws/config and ~/.aws/credentials
+  # if windows then C:/users/{user}/.aws/config
   profile = "TerraformProfile"
 }
 
