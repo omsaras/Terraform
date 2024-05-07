@@ -15,6 +15,71 @@ provider "aws" {
   profile = "TerraformProfile"
 }
 
+locals {
+  common_tags={
+    Environment = "Dev"
+    Team = "Terraform"
+  }
+}
+
+variable "ami_machine_ubuntu" {
+  type = string
+  default = "ami-076fe60835f136dc9"
+  description = "Linux distribution - Ubuntu"
+}
+
+variable "master_machine_type" {
+  type = string
+  default = "t2.medium"
+  description = "Master node: please refer to bla bla for min requirement"
+  validation {
+    condition     = length(var.image_id) > 4 && substr(var.image_id, 0, 4) == "ami-"
+    error_message = "The image_id value must be a valid AMI id, starting with \"ami-\"."
+  }
+}
+
+# Create EC2 instance
+resource "aws_instance" "master_node" {
+  ami = var.ami_machine_ubuntu
+  instance_type = "t2.medium"
+  subnet_id = aws_subnet.subnet_public_2a.id
+  associate_public_ip_address = true
+  
+  tags = merge(local.common_tags, {
+    Name="k8s_master_node"
+  }) 
+}
+
+resource "aws_instance" "workers_node" {
+  count = 2
+  ami = var.ami_machine_ubuntu
+  instance_type = "t2.micro"
+  subnet_id = aws_subnet.subnet_public_2a.id
+  associate_public_ip_address = true
+  tags = merge(local.common_tags, {
+    "Name"="k8s_worker_node_${count.index}"
+  })
+}
+
+# Create security group for master node
+# resource "aws_security_group" "sg_master_node" {
+#   name        = "open_port_master"
+#   description = "Allow required ports to be opened for kubernetes resources for inter communication"
+#   vpc_id      = aws_vpc.sme_vpc.id
+
+#   tags = {
+#     Name = "master_node_port"
+#   }
+# }
+
+# resource "aws_vpc_security_group_ingress_rule" "allow_master_ipv4" {
+#   security_group_id = aws_security_group.allow_tls.id
+#   cidr_ipv4         = aws_vpc.main.cidr_block
+#   from_port         = 443
+#   ip_protocol       = "tcp"
+#   to_port           = 443
+# }
+
 # Create a VPC
 resource "aws_vpc" "sme_vpc" {
   cidr_block = "10.0.0.0/24"
